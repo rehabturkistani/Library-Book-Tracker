@@ -1,0 +1,4 @@
+[2026-02-22T00:30:29.569167] INVALID LINE: "New Book:Author:9780134685991:1"
+DuplicateISBNException: ISBN already exists in catalog: 9780134685991
+[2026-02-22T00:30:44.5095505] INVALID LINE: "Title:Author:123:10"
+InvalidISBNException: ISBN must be exactly 13 digits
