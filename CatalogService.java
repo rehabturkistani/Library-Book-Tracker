@@ -12,6 +12,11 @@ class CatalogService {
      */
     private final ExecutionStatistics stats = new ExecutionStatistics();
 
+  /**
+     * UPDATED: Starts the catalog service using multi-threading
+     * This method initializes the shared data and coordinates between Thread 1 and Thread 2
+     * @param args Command-line arguments
+     */ 
     public void run(String[] args) {
         try {
             validateArguments(args);
@@ -23,14 +28,35 @@ class CatalogService {
             setupFiles(catalogPath);
 
             List<Book> catalog = new ArrayList<>();
-            loadCatalog(catalogPath, logPath, catalog);
 
-            executeOperation(operationArg, catalog, catalogPath, logPath);
+            /**
+             * THREAD 1: FileReader
+             * Tasks: Reads the file and fills the 'catalog' list.
+             */
+            FileReaderTask fileTask = new FileReaderTask(this, catalogPath, logPath, catalog);
+            Thread fileThread = new Thread(fileTask);
+            
+            fileThread.start(); 
+            fileThread.join();  
+
+
+            /**
+             * THREAD 2: OperationAnalyzer
+             * Tasks: Searches the 'catalog' or adds a new book to it.
+             */
+            OperationAnalyzerTask opTask = new OperationAnalyzerTask(this, operationArg, catalogPath, logPath, catalog);
+            Thread opThread = new Thread(opTask);
+            
+            opThread.start();
+            opThread.join();  
+
 
             printStatistics();
 
-        } catch (BookCatalogException e) {
+        } catch (BookCatalogException | InterruptedException e) {
             System.err.println("CRITICAL ERROR: " + e.getMessage());
+            
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -87,7 +113,7 @@ class CatalogService {
      * 
      * @param catalogPath the path to the catalog file to load
      */
-    private void loadCatalog(Path catalogPath, Path logPath, List<Book> catalog) {
+    public void loadCatalog(Path catalogPath, Path logPath, List<Book> catalog) {
 
         try (BufferedReader br = Files.newBufferedReader(catalogPath)) {
             String line;
@@ -123,7 +149,7 @@ class CatalogService {
      * 
      * @param logPath the path to the log file for logging errors
      */
-    private void executeOperation(String operationArg, List<Book> catalog, Path catalogPath, Path logPath) {
+    public  void executeOperation(String operationArg, List<Book> catalog, Path catalogPath, Path logPath) {
         try {
             if (isNewBookRecord(operationArg)) {
 
@@ -303,3 +329,4 @@ class CatalogService {
         System.out.println("Errors encountered      : " + stats.getErrorCount());
     }
 }
+
